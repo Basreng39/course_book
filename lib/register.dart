@@ -18,7 +18,8 @@ class _SignUpState extends State<SignUp> {
   final TextEditingController _confirmPasswordController = TextEditingController();
 
   Future<void> register() async {
-    final url = Uri.parse('http://localhost:8000/api/auth/register');
+    final url = Uri.parse('http://192.168.100.151:8000/api/auth/register');
+    // final url = Uri.parse('http://127.0.0.1:8000/api/auth/register');
     final response = await http.post(
       url,
       headers: {

@@ -1,9 +1,41 @@
 import 'package:flutter/material.dart';
-import 'course_detail.dart'; // Import file detail
-import 'dashboard.dart';
-// import 'booking_confirmed.dart'; // Import file booking confirmed
+import 'package:course_book/models/course.dart';
+import 'package:course_book/services/course_services.dart';
+import 'signatureCourse_detail.dart';
+import 'navbar.dart';
 
-class SignatureCoursePage extends StatelessWidget {
+class SignatureCoursePage extends StatefulWidget {
+  @override
+  _SignatureCoursePageState createState() => _SignatureCoursePageState();
+}
+
+class _SignatureCoursePageState extends State<SignatureCoursePage> {
+  late Future<List<Course>> _signatureCourses;
+
+  @override
+  void initState() {
+    super.initState();
+    _signatureCourses = _fetchSignatureCourses();
+  }
+
+  Future<List<Course>> _fetchSignatureCourses() async {
+    ApiService apiService =
+        ApiService(baseUrl: 'http://192.168.100.151:8000/api');
+        // ApiService(baseUrl: 'http://127.0.0.1:8000/api');
+    List<Course> allCourses = await apiService.getCourses();
+
+    List<Course> filteredCourses = allCourses.where((course) {
+      double rating = double.tryParse(course.rating) ?? 0.0;
+      return rating > 8.5;
+    }).toList();
+
+    // Sort the filtered courses by rating in descending order
+    filteredCourses.sort((a, b) => (double.tryParse(b.rating) ?? 0.0)
+        .compareTo(double.tryParse(a.rating) ?? 0.0));
+
+    return filteredCourses;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -12,92 +44,74 @@ class SignatureCoursePage extends StatelessWidget {
         leading: IconButton(
           icon: Icon(Icons.arrow_back),
           onPressed: () {
-            Navigator.push(
+            Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => Dashboard()),
+              MaterialPageRoute(
+                builder: (context) =>
+                    Navbar(), // Kembali ke Navbar yang berisi Dashboard
+              ),
             );
           },
         ),
       ),
-      body: SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Header or any introduction section
-            Text(
-              'Explore Our Signature Courses',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+      body: FutureBuilder<List<Course>>(
+        future: _signatureCourses,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Failed to load courses'));
+          } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
+            return Center(
+                child: Text('No courses with rating above 8.5 found'));
+          } else {
+            List<Course> courses = snapshot.data!;
+            return SingleChildScrollView(
+              padding: EdgeInsets.all(16),
+              child: Column(
+                children: courses.map((course) {
+                  return Column(
+                    children: [
+                      CourseCard(
+                        imageUrl: course.fullGambarUrl,
+                        title: course.nama,
+                        instructorName: course.instruktur.nama,
+                        instructorImage: course.instruktur.fullImageUrl,
+                        rating: course.rating,
+                        duration: '${course.jamPelajaran} hours',
+                        price: '\$${course.harga}',
+                        languages: [course.language],
+                        startDate: course.formattedStartCourse,
+                        meetings: '${course.jumlahPertemuan} Sections',
+                        description: course.deskripsi,
+                        onTap: () => SignatureCourseDetail.showCourseDetails(
+                          context,
+                          course.id, // Pastikan ID course diteruskan
+                          course.instruktur.id, // Pastikan ID instruktur diteruskan
+                          course.nama,
+                          course.fullGambarUrl,
+                          course.instruktur.nama,
+                          course.instruktur.fullImageUrl,
+                          course.rating,
+                          '${course.jamPelajaran} hours',
+                          '\$${course.harga}',
+                          [course.language],
+                          course.formattedStartCourse,
+                          '${course.jumlahPertemuan} Sections',
+                          course.deskripsi,
+                        ),
+                      ),
+                      SizedBox(
+                          height:
+                              10), // Tambahkan SizedBox untuk menambah jarak antar Card
+                    ],
+                  );
+                }).toList(),
               ),
-            ),
-            SizedBox(height: 15),
-            
-            // List of Signature Courses
-            CourseCard(
-              imageUrl: 'assets/drawart.png',
-              title: 'Drawing Art',
-              instructorName: 'John Doe',
-              instructorImage: 'assets/pp.jpg',
-              rating: '9.3',
-              duration: '10 hours',
-              price: '\$150',
-              languages: ['English', 'Indonesia'],
-              startDate: '2024-08-01',
-              meetings: '12 Sections',
-              description: 'A comprehensive course designed for those new to drawing, covering all the basics. Learn to quickly and effectively sketch urban landscapes and cityscapes.',
-              onTap: () => _showCourseDetails(
-                context,
-                'Drawing Art',
-                'John Doe',
-                'assets/pp.jpg',
-                '9.3',
-                '10 hours',
-                '\$150',
-                ['English', 'Indonesia'],
-                '2024-08-01',
-                '12 Sections',
-                'A comprehensive course designed for those new to drawing, covering all the basics. Learn to quickly and effectively sketch urban landscapes and cityscapes.'
-              ),
-            ),
-            // Add more CourseCard widgets here...
-          ],
-        ),
+            );
+          }
+        },
       ),
-    );
-  }
-
-  void _showCourseDetails(
-    BuildContext context,
-    String title,
-    String instructorName,
-    String instructorImage,
-    String rating,
-    String duration,
-    String price,
-    List<String> languages,
-    String startDate,
-    String meetings,
-    String description,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return CourseDetail(
-          title: title,
-          instructorName: instructorName,
-          instructorImage: instructorImage,
-          rating: rating,
-          duration: duration,
-          price: price,
-          languages: languages,
-          startDate: startDate,
-          meetings: meetings,
-          description: description,
-        );
-      },
     );
   }
 }
@@ -157,7 +171,7 @@ class CourseCard extends StatelessWidget {
                 ],
               ),
               clipBehavior: Clip.hardEdge,
-              child: Image.asset(
+              child: Image.network(
                 imageUrl,
                 width: 100,
                 height: 100,
@@ -166,7 +180,8 @@ class CourseCard extends StatelessWidget {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                padding:
+                    const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -181,7 +196,7 @@ class CourseCard extends StatelessWidget {
                     Row(
                       children: [
                         CircleAvatar(
-                          backgroundImage: AssetImage(instructorImage),
+                          backgroundImage: NetworkImage(instructorImage),
                           radius: 16,
                         ),
                         SizedBox(width: 8),
@@ -240,7 +255,6 @@ class CourseCard extends StatelessWidget {
     );
   }
 }
-
 
 void main() {
   runApp(MaterialApp(

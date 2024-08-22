@@ -1,9 +1,8 @@
-import 'package:course_book/register.dart';
+// lib/pages/login_page.dart
 import 'package:flutter/material.dart';
+import 'package:course_book/register.dart';
 import 'package:course_book/navbar.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:course_book/services/user_service.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -14,43 +13,20 @@ class _LoginPageState extends State<LoginPage> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
 
   Future<void> loginUser() async {
     try {
-      final response = await http.post(
-        Uri.parse('http://127.0.0.1:8000/api/auth/login'),
-        headers: <String, String>{
-          'Content-Type': 'application/json; charset=UTF-8',
-        },
-        body: jsonEncode(<String, String>{
-          'email': emailController.text,
-          'password': passwordController.text,
-        }),
+      await _authService.loginUser(
+        emailController.text,
+        passwordController.text,
       );
-
-      if (response.statusCode == 200) {
-        final jsonResponse = jsonDecode(response.body);
-        // Save user data to SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        prefs.setInt('id', jsonResponse['id']);
-        prefs.setString('email', jsonResponse['email']);
-        prefs.setString('userName', jsonResponse['name']); // Consistent key
-        prefs.setString('alamat', jsonResponse['alamat']);
-        prefs.setString('no_hp', jsonResponse['no_hp']);
-        prefs.setString('userProfileImageUrl', jsonResponse['image']); // Consistent key
-        prefs.setString('status', jsonResponse['status']);
-
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => Navbar(),
-          ),
-        );
-      } else {
-        final jsonResponse = jsonDecode(response.body);
-        final errorMessage = jsonResponse['message'];
-        showSnackBar(context, errorMessage);
-      }
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => Navbar(),
+        ),
+      );
     } catch (e) {
       showSnackBar(context, 'Error: $e');
     }
@@ -262,32 +238,32 @@ class _LoginPageState extends State<LoginPage> {
           filled: true,
           fillColor: Color(0xFFEDEDED),
           hintText: label,
-          hintStyle: TextStyle(
-            color: Color(0xFF979797),
-            fontSize: 14,
-            fontFamily: 'Quicksand',
-            fontWeight: FontWeight.w400,
-          ),
-          contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(15),
-            borderSide: BorderSide.none,
-          ),
-          prefixIcon: Icon(icon, color: Color(0xFF40B59F)),
-        ),
-        validator: (value) {
-          if (value == null || value.isEmpty) {
-            return 'Please enter your $label';
-          }
-          return null;
-        },
-      ),
-    );
-  }
-}
-
-void main() {
-  runApp(MaterialApp(
-    home: LoginPage(),
-  ));
-}
+                hintStyle: TextStyle(
+               color: Color(0xFF979797),
+               fontSize: 14,
+               fontFamily: 'Quicksand',
+               fontWeight: FontWeight.w400,
+             ),
+             contentPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+             border: OutlineInputBorder(
+               borderRadius: BorderRadius.circular(15),
+               borderSide: BorderSide.none,
+             ),
+             prefixIcon: Icon(icon, color: Color(0xFF40B59F)),
+           ),
+           validator: (value) {
+             if (value == null || value.isEmpty) {
+               return 'Please enter your $label';
+             }
+             return null;
+           },
+         ),
+       );
+     }
+   }
+   
+   void main() {
+     runApp(MaterialApp(
+       home: LoginPage(),
+     ));
+   }

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:course_book/login.dart';
-import 'package:course_book/update_profil.dart'; // Import file update_profile.dart
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:course_book/update_profil.dart';
+import 'package:course_book/services/user_service.dart';
 
 class MyProfile extends StatefulWidget {
   const MyProfile({Key? key}) : super(key: key);
@@ -11,6 +11,8 @@ class MyProfile extends StatefulWidget {
 }
 
 class _MyProfileState extends State<MyProfile> {
+  final AuthService _authService = AuthService();
+
   String _username = '';
   String _email = '';
   String _address = '';
@@ -23,21 +25,30 @@ class _MyProfileState extends State<MyProfile> {
     _loadUserProfile();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadUserProfile(); // Memastikan data dimuat ulang ketika halaman aktif
+  }
+
   Future<void> _loadUserProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _username = prefs.getString('userName') ?? '';
-      _email = prefs.getString('email') ?? '';
-      _address = prefs.getString('alamat') ?? '';
-      _phoneNumber = prefs.getString('no_hp') ?? '';
-      _userProfileImageUrl = prefs.getString('userProfileImageUrl') ?? '';
-    });
+    final user = await _authService.getUserFromPreferences();
+    if (user != null) {
+      setState(() {
+        _username = user.name;
+        _email = user.email;
+        _address = user.address ?? '';
+        _phoneNumber = user.phoneNumber ?? '';
+        _userProfileImageUrl = user.userProfileImageUrl;
+      });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false,
         title: Text('My Profile'),
         backgroundColor: Color(0xAD40B59F),
         elevation: 0,
@@ -52,85 +63,114 @@ class _MyProfileState extends State<MyProfile> {
       ),
       body: Stack(
         children: [
-          // Background Container
-          Positioned(
-            top: -30,
-            left: 0,
-            right: 0,
-            child: Container(
-              width: double.infinity,
-              padding: EdgeInsets.symmetric(horizontal: 20, vertical: 80),
-              decoration: BoxDecoration(
-                color: Color(0xAD40B59F),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(140),
-                  bottomRight: Radius.circular(140),
-                ),
-              ),
-              child: Container(), // Empty child to ensure the decoration is visible
-            ),
+          _buildBackgroundContainer(),
+          _buildProfileImage(),
+          _buildUpdateButton(context),
+          _buildProfileDetails(),
+        ],
+      ),
+    );
+  }
+
+  Positioned _buildBackgroundContainer() {
+    return Positioned(
+      top: -30,
+      left: 0,
+      right: 0,
+      child: Container(
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 80),
+        decoration: BoxDecoration(
+          color: Color(0xAD40B59F),
+          borderRadius: BorderRadius.only(
+            bottomLeft: Radius.circular(140),
+            bottomRight: Radius.circular(140),
           ),
-          // Profile Image
-          Positioned(
-            top: 45, // Adjust the top position as needed
-            left: MediaQuery.of(context).size.width / 2 - 80, // Center horizontally
-            child: CircleAvatar(
-              radius: 80,
-              backgroundColor: Colors.transparent,
-              child: ClipOval(
-                child: Image.network(
-                  _userProfileImageUrl.isNotEmpty ? _userProfileImageUrl : "",
+        ),
+        child: Container(),
+      ),
+    );
+  }
+
+  Positioned _buildProfileImage() {
+    return Positioned(
+      top: 45,
+      left: MediaQuery.of(context).size.width / 2 - 80,
+      child: CircleAvatar(
+        radius: 80,
+        backgroundColor: Colors.transparent,
+        child: ClipOval(
+          child: _userProfileImageUrl.isNotEmpty
+              ? Image.network(
+                  _userProfileImageUrl,
                   width: 160,
                   height: 160,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Icon(
+                      Icons.person, // Default icon if network image fails
+                      size: 80,
+                      color: Colors.grey,
+                    );
+                  },
+                )
+              : Icon(
+                  Icons.person, // Default icon when no image is available
+                  size: 80,
+                  color: Colors.grey,
                 ),
-              ),
-            ),
+        ),
+      ),
+    );
+  }
+
+  Positioned _buildUpdateButton(BuildContext context) {
+    return Positioned(
+      top: 210,
+      left: MediaQuery.of(context).size.width / 2 - 75,
+      child: ElevatedButton(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => UpdateProfilePage()),
+          );
+          _loadUserProfile(); // Memuat ulang data profil setelah pembaruan
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Color(0xAD40B59F),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(50),
           ),
-          // Update Button
-          Positioned(
-            top: 210, // Adjust this based on your design
-            left: MediaQuery.of(context).size.width / 2 - 75, // Center horizontally
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => UpdateProfilePage()),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color(0xAD40B59F), // Button color
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(50), // Button border radius
-                ),
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5), // Button padding
-              ),
-              child: Text(
-                'Update Profile',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  fontFamily: 'Poppins',
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
+          padding: EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+          elevation: 8, // Menambahkan shadow pada tombol dengan elevasi
+          shadowColor:
+              Colors.black.withOpacity(0.3), // Menentukan warna bayangan
+        ),
+        child: Text(
+          'Update Profile',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontFamily: 'Poppins',
+            fontWeight: FontWeight.w500,
           ),
-          // Profile Details
-          Positioned(
-            top: 260, // Adjust based on your design
-            left: 16,
-            right: 16,
-            child: Column(
-              children: [
-                SizedBox(height: 20),
-                _buildProfileInfo(Icons.person, 'Name ', _username),
-                _buildProfileInfo(Icons.email, 'Email', _email),
-                _buildProfileInfo(Icons.location_on, 'Address', _address),
-                _buildProfileInfo(Icons.phone, 'Phone Number', _phoneNumber),
-              ],
-            ),
-          ),
+        ),
+      ),
+    );
+  }
+
+  Positioned _buildProfileDetails() {
+    return Positioned(
+      top: 260,
+      left: 16,
+      right: 16,
+      child: Column(
+        children: [
+          SizedBox(height: 20),
+          _buildProfileInfo(Icons.person, 'Name ', _username),
+          _buildProfileInfo(Icons.email, 'Email', _email),
+          _buildProfileInfo(Icons.location_on, 'Address', _address),
+          _buildProfileInfo(Icons.phone, 'Phone Number', _phoneNumber),
         ],
       ),
     );
@@ -173,15 +213,15 @@ class _MyProfileState extends State<MyProfile> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: Text('Cancel'),
             ),
             TextButton(
               onPressed: () async {
-                final prefs = await SharedPreferences.getInstance();
-                await prefs.clear(); // Clear all data in SharedPreferences
-                Navigator.of(context).pop(); // Close the dialog
+                await _authService
+                    .clearUserData(); // Use AuthService to clear data
+                Navigator.of(context).pop();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => LoginPage()),

@@ -5,7 +5,7 @@ import 'package:course_book/models/booking_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'navbar.dart';
 
-class CategoriescourseDetail extends StatelessWidget {
+class SignatureCourseDetail extends StatelessWidget {
   final int courseId;
   final int instrukturId;
   final String title;
@@ -20,7 +20,7 @@ class CategoriescourseDetail extends StatelessWidget {
   final String meetings;
   final String description;
 
-  const CategoriescourseDetail({
+  const SignatureCourseDetail({
     Key? key,
     required this.courseId,
     required this.instrukturId,
@@ -130,8 +130,7 @@ class CategoriescourseDetail extends StatelessWidget {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) =>
-                          Navbar(selectedIndex: 2),
+                      builder: (context) => Navbar(selectedIndex: 2),
                     ),
                   );
                 },
@@ -164,7 +163,6 @@ class CategoriescourseDetail extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Container to wrap course content with shadow
               Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -190,10 +188,9 @@ class CategoriescourseDetail extends StatelessWidget {
                           borderRadius: BorderRadius.circular(15),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(
-                                  0.25), // Warna bayangan dengan transparansi
-                              blurRadius: 10, // Radius blur
-                              offset: Offset(0, 5), // Posisi bayangan
+                              color: Colors.black.withOpacity(0.25),
+                              blurRadius: 10,
+                              offset: Offset(0, 5),
                             ),
                           ],
                           image: DecorationImage(
@@ -238,7 +235,8 @@ class CategoriescourseDetail extends StatelessWidget {
                               placeholderErrorBuilder:
                                   (context, error, stackTrace) {
                                 return Icon(
-                                  Icons.person, // Use a people or human icon
+                                  Icons
+                                      .person, // Display a people or human icon while loading
                                   size: 40,
                                 );
                               },
@@ -251,7 +249,7 @@ class CategoriescourseDetail extends StatelessWidget {
                                 );
                               },
                             ),
-                          ),
+                          )
                         ],
                       ),
                       SizedBox(height: 16),
@@ -447,14 +445,14 @@ class CategoriescourseDetail extends StatelessWidget {
       String price,
       List<String> languages,
       String startDate,
-      String meetings,
+      String sections,
       String deskripsi) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (BuildContext context) {
-        return CategoriescourseDetail(
+        return SignatureCourseDetail(
           courseId: courseId,
           instrukturId: instrukturId,
           title: title,
@@ -466,7 +464,7 @@ class CategoriescourseDetail extends StatelessWidget {
           price: price,
           languages: languages,
           startDate: startDate,
-          meetings: meetings,
+          meetings: sections,
           description: deskripsi,
         );
       },
